@@ -4,10 +4,217 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 button1 = InlineKeyboardButton("📋 Записаться к врачу", callback_data='book_appointment')
 button2 = InlineKeyboardButton("❤ Симптомы", callback_data='symptoms')
 button3 = InlineKeyboardButton("❔ Задать вопрос", callback_data='ask_question')
-button4 = InlineKeyboardButton("ℹ Информация", callback_data='information')
+button4 = InlineKeyboardButton("ℹ Информация", callback_data='handle_message')
 button5 = InlineKeyboardButton("☎ Обратиться в поддержку", callback_data='support')
 button6 = InlineKeyboardButton("📍 Помощь", callback_data='help')
 
+import telegram
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+
+# Создаем функцию для кнопки "Book Appointment"
+def book_appointment(update, context):
+    chat_id = update.message.chat_id
+    message = "Для записи на прием к врачу перейдите по ссылке: https://www.gosuslugi.ru/10091/1/form"
+
+    context.bot.send_message(chat_id=chat_id, text=message)
+
+# Создаем функцию для кнопки "Symptoms"
+def symptoms(update, context):
+    chat_id = update.message.chat_id
+    message = "Введите свои симптомы через запятую (например, головная боль, насморк):"
+
+    context.bot.send_message(chat_id=chat_id, text=message)
+
+    # Создаем функцию для обработки ответа пользователя
+    def handle_symptoms(update, context):
+        chat_id = update.message.chat_id
+        symptoms = update.message.text
+
+        # Импортируем библиотеку pymorphy2 для лемматизации слов
+        import pymorphy2
+        morph = pymorphy2.MorphAnalyzer()
+
+        # Лемматизируем слова и ищем ключевые слова
+        keywords = []
+        for word in symptoms.split(","):
+            parsed_word = morph.parse(word.strip())[0]
+            if "NOUN" in parsed_word.tag:
+                keywords.append(parsed_word.normal_form)
+
+        # Определяем диагноз на основе ключевых слов
+        diagnosis = ""
+        if "головная боль" in keywords:
+            diagnosis = "мигрень"
+        elif "насморк" in keywords:
+            diagnosis = "ОРВИ"
+
+        # Отправляем сообщение с диагнозом и ссылкой на запись к врачу
+        if diagnosis:
+            message = f"Ваш диагноз: {diagnosis}. Для записи на прием к врачу перейдите по ссылке: https://www.gosuslugi.ru/10091/1/form"
+        else:
+            message = "К сожалению, мы не смогли определить ваш диагноз. Попробуйте ввести свои симптомы еще раз."
+
+        context.bot.send_message(chat_id=chat_id, text=message)
+
+    # Регистрируем функцию для обработки ответа пользователя
+    updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_symptoms))
+
+# Создаем функцию для кнопки "Ask Question"
+def ask_question(update, context):
+    chat_id = update.message.chat_id
+    message = "Задайте свой вопрос:"
+
+    context.bot.send_message(chat_id=chat_id, text=message)
+
+    # Создаем функцию для обработки вопроса пользователя
+   def handle_message(update, context):
+    text = update.message.text
+    chat_id = update.message.chat_id
+
+    if text == 'Учреждение':
+        # выводим кнопки для выбора города и организации
+        keyboard = [
+            [InlineKeyboardButton("Город 1", callback_data='city_1')],
+            [InlineKeyboardButton("Город 2", callback_data='city_2')],
+            [InlineKeyboardButton("Город 3", callback_data='city_3')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(chat_id=chat_id, text='Выберите город:', reply_markup=reply_markup)
+
+    elif text == 'Сотрудники':
+        # выводим список сотрудников
+        employees = [
+            {'name': 'Светлана Слепова Иосифовна', 'position': 'Заведующий', 'phone': '8 888 888 88 88', 'email': '7zxc.email@mail.ru', 'city': 'Орск', 'branch': 'Дневной стационар', 'address': 'Оренбургская Область, г. Орск, ул. Станиславского, 1А', 'additional_info': 'нет'},
+            {'name': 'Иван Иванович Иванов', 'position': 'Врач', 'phone': '8 999 999 99 99', 'email': 'ivan.ivanov@mail.ru', 'city': 'Орск', 'branch': 'Дневной стационар', 'address': 'Оренбургская Область, г. Орск, ул. Станиславского, 1А', 'additional_info': 'нет'},
+            {'name': 'Петр Петрович Петров', 'position': 'Медсестра', 'phone': '8 777 777 77 77', 'email': 'petr.petrov@mail.ru', 'city': 'Орск', 'branch': 'Дневной стационар', 'address': 'Оренбургская Область, г. Орск, ул. Станиславского, 1А', 'additional_info': 'нет'}
+        ]
+        for employee in employees:
+            message = f"ФИО: {employee['name']}nДолжность: {employee['position']}nТелефон: {employee['phone']}nE-mail: {employee['email']}nГород: {employee['city']}nФилиал: {employee['branch']}nАдрес: {employee['address']}nДоп. информация: {employee['additional_info']}"
+            context.bot.send_message(chat_id=chat_id, text=message)
+
+    elif text == 'Контактная информация':
+        # выводим статическую информацию об учреждении
+        message = "📞 Контактная информация 📞n• Наименование учреждения: ГАУЗ 'ГБ' Г. Орскаn• Сокращенное наименование учреждения: ГАУЗ 'ГБ' Г. ОРСКАn• Коды учреждения: ИНН 5614088133, КПП 561401001, ОКПО 70022434, ОГРН 1225600012440n• Публично-правовое образование: Оренбургская область, ОКАТО 53 000 000 000, ОКТМО 53723000n• Органы, осуществляющие функции иполномочия учредителя: Министерство здравоохранения Оренбургской областиn• Тип учреждения: Автономное учреждениеn• Вид учреждения: Больница городскаяn• Руководитель: Главный врач: Орлов Павел Владимировичn• Контактный телефон: +7 353 720 67 67n• Сайт учреждения: http://orskgb.nitoich.tw1.ru/n• Адрес электронной почты: syntez-ref@mail.ru"
+        context.bot.send_message(chat_id=chat_id, text=message)
+
+    else:
+        # если пользователь отправил что-то другое, выводим сообщение об ошибке
+        context.bot.send_message(chat_id=chat_id, text='Неизвестная команда')
+  
+ 
+def support(update, context):
+    # Get the user's chat ID
+    chat_id = update.message.chat_id
+    
+    # Send a message to the user
+    context.bot.send_message(chat_id=chat_id, text="Введите свой вопрос:")
+    
+    # Add the user's question to the database
+    conn = sqlite3.connect('questions.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO questions (chat_id) VALUES (?)", (chat_id,))
+    conn.commit()
+    conn.close()
+
+
+
+
+def add_question(update, context):
+    # Get the user's chat ID and question
+    chat_id = update.message.chat_id
+    question = update.message.text
+    
+    # Update the database with the user's question
+    conn = sqlite3.connect('questions.db')
+    c = conn.cursor()
+    c.execute("UPDATE questions SET question=? WHERE chat_id=?", (question, chat_id))
+    conn.commit()
+    conn.close()
+    
+    # Send a message to the user confirming their question has been received
+    context.bot.send_message(chat_id=chat_id, text="Ваш вопрос был получен. Мы ответим вам в ближайшее время.")
+
+
+
+def view_questions(update, context):
+    # Get the user's chat ID
+    chat_id = update.message.chat_id
+    
+    # Check if the user is an administrator
+    if chat_id == ADMIN_CHAT_ID:
+        # Get all the questions from the database
+        conn = sqlite3.connect('questions.db')
+        c = conn.cursor()
+        c.execute("SELECT chat_id, question FROM questions")
+        questions = c.fetchall()
+        conn.close()
+        
+        # Send a message to the administrator with the questions
+        message = "Список вопросов:n"
+        for q in questions:
+            message += f"Chat ID: {q[0]}, Вопрос: {q[1]}n"
+        context.bot.send_message(chat_id=chat_id, text=message)
+    else:
+        # Send a message to the user that they are not authorized to view the questions
+        context.bot.send_message(chat_id=chat_id, text="Вы не авторизованы для просмотра вопросов.")
+
+
+
+
+def main():
+    # Create the updater and dispatcher
+    updater = Updater(TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
+    
+    # Add the support button to the menu
+    keyboard = [[InlineKeyboardButton("Обратиться в поддержку", callback_data='support')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    dispatcher.add_handler(CommandHandler('start', start))
+    dispatcher.add_handler(CallbackQueryHandler(button))
+    
+    # Add the handlers for the support functionality
+    dispatcher.add_handler(CommandHandler('support', support))
+    dispatcher.add_handler(MessageHandler(Filters.text, add_question))
+    dispatcher.add_handler(CommandHandler('view_questions', view_questions))
+    
+    # Start the bot
+    updater.start_polling()
+    updater.idle()
+  
+  
+  def help(update, context):
+    # Get the user's chat ID
+    chat_id = update.message.chat_id
+    
+    # Send a message to the user with the help information
+    message = "Добро пожаловать в наш бот!nn"
+    message += "Чтобы воспользоваться ботом, выберите нужный пункт меню.nn"
+    message += "Если у вас возникли вопросы или проблемы, нажмите кнопку 'Обратиться в поддержку'.nn"
+    message += "Спасибо за использование нашего бота!"
+    context.bot.send_message(chat_id=chat_id, text=message)
+
+
+3. Finally, you need to add the "Помощь" button to your bot's menu:
+
+def main():
+    # Create the updater and dispatcher
+    updater = Updater(TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
+    
+    # Add the help button to the menu
+    keyboard = [[InlineKeyboardButton("Помощь", callback_data='help')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    dispatcher.add_handler(CommandHandler('start', start))
+    dispatcher.add_handler(CallbackQueryHandler(button))
+    
+    # Add the handler for the help functionality
+    dispatcher.add_handler(CommandHandler('help', help))
+    
+    # Start the bot
+    updater.start_polling()
+    updater.idle()
+  
+  
 # Создание разметки для кнопок
 menu_markup = InlineKeyboardMarkup([[button1], [button2], [button3], [button4], [button5], [button6]])
 
